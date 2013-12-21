@@ -73,7 +73,9 @@
 
 - (void)pushViewController:(UIViewController *)viewController animated:(BOOL)animated
 {
-    [self.screenShotsList addObject:[self capture]];
+    if (self.viewControllers.count>0) {
+        [self.screenShotsList addObject:[self capture]];
+    }
     
     [super pushViewController:viewController animated:animated];
 }
@@ -85,12 +87,23 @@
     return [super popViewControllerAnimated:animated];
 }
 
+- (NSArray *)popToRootViewControllerAnimated:(BOOL)animated
+{
+    [self.screenShotsList removeAllObjects];
+    return [super popToRootViewControllerAnimated:animated];
+}
 #pragma mark - Utility Methods -
 
 - (UIImage *)capture
 {
-    UIGraphicsBeginImageContextWithOptions(self.view.bounds.size, self.view.opaque, 0.0);
-    [self.view.layer renderInContext:UIGraphicsGetCurrentContext()];
+    UIView *screenShotView = nil;
+    if (self.tabBarController) {
+        screenShotView = self.tabBarController.view;
+    } else {
+        screenShotView = self.view;
+    }
+    UIGraphicsBeginImageContextWithOptions(screenShotView.bounds.size, screenShotView.opaque, 0.0);
+    [screenShotView.layer renderInContext:UIGraphicsGetCurrentContext()];
     
     UIImage * img = UIGraphicsGetImageFromCurrentImageContext();
     
@@ -157,6 +170,7 @@
             CGRect frame = self.view.frame;
             
             self.backgroundView = [[UIView alloc]initWithFrame:CGRectMake(0, 0, frame.size.width , frame.size.height)];
+
             [self.view.superview insertSubview:self.backgroundView belowSubview:self.view];
             
             blackMask = [[UIView alloc]initWithFrame:CGRectMake(0, 0, frame.size.width , frame.size.height)];
@@ -164,6 +178,10 @@
             [self.backgroundView addSubview:blackMask];
         }
         
+        //fix the issue that backgroundview will be removed when switching tabs
+        if(![self.view.superview.subviews containsObject:self.backgroundView ]) {
+            [self.view.superview insertSubview:self.backgroundView belowSubview:self.view];
+        }
         self.backgroundView.hidden = NO;
         
         if (lastScreenShotView) [lastScreenShotView removeFromSuperview];
